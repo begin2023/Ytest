@@ -1,11 +1,14 @@
 #include <functional>
 #include <iostream>
 #include <string>
-#include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace Frame {
 using CaseName = std::string;
 using CaseFunc = std::function<void()>;
+using YCase = std::pair<CaseName, CaseFunc>;
+
 class FrameWork {
 public:
   static FrameWork &Instance() {
@@ -26,17 +29,22 @@ public:
   }
 
   void RunCase(CaseName caseName) {
-    if (testCases_.find(caseName) != testCases_.end()) {
-      std::cout << "[RUN     ]" << caseName << std::endl;
-      (testCases_[caseName])();
-      std::cout << "[FINISH  ]" << caseName << std::endl;
-      return;
+    auto iter = testCases_.begin();
+    while (iter != testCases_.end()) {
+      if ((*iter).first == caseName) {
+        std::cout << "[RUN     ]" << caseName << std::endl;
+        ((*iter).second)();
+        std::cout << "[FINISH  ]" << caseName << std::endl;
+        return;
+      }
+      iter++;
     }
+
     std::cout << "Error, no case named: " << caseName << std::endl;
   }
 
   void AddCase(CaseName caseName, CaseFunc caseFunc) {
-    testCases_[caseName] = caseFunc;
+    testCases_.emplace_back(YCase{caseName, caseFunc});
   }
 
 private:
@@ -46,7 +54,7 @@ private:
   FrameWork &operator=(const FrameWork &) & = delete;
   FrameWork(const FrameWork &&) = delete;
   FrameWork &operator=(const FrameWork &&) & = delete;
-  std::unordered_map<CaseName, CaseFunc> testCases_;
+  std::vector<YCase> testCases_;
 };
 
 #define FUNCTION_NAME(name) #name
@@ -57,7 +65,6 @@ private:
 #define REGISTER_CASE(name, func)                                              \
   namespace {                                                                  \
   int ADD_LINENUMBER(register_case_) = []() {                                  \
-    std::cout << (name) << std::endl;                                          \
     FrameWork::Instance().AddCase(name, func);                                 \
     return 0;                                                                  \
   }();                                                                         \
@@ -72,9 +79,36 @@ private:
 #define EXPECT_TRUE(express)                                                   \
   do {                                                                         \
     if (express) {                                                             \
-      std::cout << "[OK      ]" << std::endl;                                  \
+      std::cout << "[TRUE    ]" << std::endl;                                  \
     } else {                                                                   \
-      std::cout << "[FAILED  ]" << std::endl;                                  \
+      std::cout << "[FALSE   ]" << std::endl;                                  \
+    }                                                                          \
+  } while (false);
+
+#define EXPECT_FALSE(express)                                                   \
+  do {                                                                         \
+    if (!express) {                                                             \
+      std::cout << "[TRUE    ]" << std::endl;                                  \
+    } else {                                                                   \
+      std::cout << "[FALSE   ]" << std::endl;                                  \
+    }                                                                          \
+  } while (false);
+
+#define EXPECT_EQ(v1, v2)                                                      \
+  do {                                                                         \
+    if (v1 == v2) {                                                            \
+      std::cout << "[EQAUL   ]" << std::endl;                                  \
+    } else {                                                                   \
+      std::cout << "[NOT_EQ  ]" << std::endl;                                  \
+    }                                                                          \
+  } while (false);
+
+#define EXPECT_NE(v1, v2)                                                      \
+  do {                                                                         \
+    if (v1 != v2) {                                                            \
+      std::cout << "[EQAUL   ]" << std::endl;                                  \
+    } else {                                                                   \
+      std::cout << "[NOT_EQ  ]" << std::endl;                                  \
     }                                                                          \
   } while (false);
 } // namespace Frame
